@@ -1,23 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:pertemuan4/bloc/login_bloc.dart';
+import 'package:pertemuan4/helpers/user_info.dart';
+import 'package:pertemuan4/ui/produk_page.dart';
 import 'package:pertemuan4/ui/registrasi_page.dart';
+import 'package:pertemuan4/widget/warning_dialog.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
-
   _LoginPageState createState() => _LoginPageState();
 }
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-
   final _emailTextboxController = TextEditingController();
-  final _passwordTextboxController = TextEditingController();
+  final _passwprdTextboxController = TextEditingController();
 
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Login Bertha'),
+        title: const Text('Login'),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -47,7 +49,7 @@ class _LoginPageState extends State<LoginPage> {
       controller: _emailTextboxController,
       validator: (value) {
         if (value!.isEmpty) {
-          return "email harus diisi";
+          return 'Email harus diisi';
         }
         return null;
       },
@@ -59,7 +61,7 @@ class _LoginPageState extends State<LoginPage> {
       decoration: const InputDecoration(labelText: "Password"),
       keyboardType: TextInputType.text,
       obscureText: true,
-      controller: _passwordTextboxController,
+      controller: _passwprdTextboxController,
       validator: (value) {
         if (value!.isEmpty) {
           return "password harus diisi";
@@ -74,8 +76,47 @@ class _LoginPageState extends State<LoginPage> {
       child: const Text("Login"),
       onPressed: () {
         var validate = _formKey.currentState!.validate();
+        if (validate) {
+          if (!_isLoading) _submit();
+        }
       },
     );
+  }
+
+  void _submit() {
+    _formKey.currentState!.save();
+    setState(() {
+      _isLoading = true;
+    });
+    LoginBloc.login(
+            email: _emailTextboxController.text,
+            password: _passwprdTextboxController.text)
+        .then((value) async {
+      if (value.code == 200) {
+        await UserInfo().setToken(value.token.toString());
+        await UserInfo().setUserID(int.parse(value.userID.toString()));
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (context) => const ProdukPage()));
+      } else {
+        showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) => const WarningDialog(
+                  description: "Login gagal silahkan coba lagi",
+                ));
+      }
+    }, onError: (error) {
+      print(error);
+      showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) => const WarningDialog(
+                description: "Login gagal silahkan coba lagi",
+              ));
+    });
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   Widget _menuRegistrasi() {
